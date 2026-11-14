@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct WeatherActivitiesApp: App {
+
+    @State private var citySearchViewModel =
+        DependencyContainer().makeCitySearchViewModel()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                CitySearchView(
+                    viewModel: citySearchViewModel
+                )
+            }
         }
     }
 }
