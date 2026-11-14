@@ -5,23 +5,29 @@
 //  Created by Nitin George on 13/11/2026.
 //
 
+import Foundation
+
 @MainActor
 struct DependencyContainer {
 
     func makeCitySearchViewModel() -> CitySearchViewModel {
 
-        let service = CityService()
+        let httpClient = URLSessionHTTPClient()
 
-        let repository = CityRepository(
-            service: service
+        let cityService = CityService(
+            httpClient: httpClient
         )
 
-        let useCase = SearchCitiesUseCase(
-            repository: repository
+        let cityRepository = CityRepository(
+            service: cityService
+        )
+
+        let searchCitiesUseCase = SearchCitiesUseCase(
+            repository: cityRepository
         )
 
         return CitySearchViewModel(
-            searchCitiesUseCase: useCase
+            searchCitiesUseCase: searchCitiesUseCase
         )
     }
 }

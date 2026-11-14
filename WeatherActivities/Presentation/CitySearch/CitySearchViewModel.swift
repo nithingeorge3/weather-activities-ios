@@ -37,7 +37,10 @@ final class CitySearchViewModel {
     ) {
         self.searchCitiesUseCase = searchCitiesUseCase
     }
+}
 
+//MARK: - Services
+extension CitySearchViewModel {
     func search() async {
 
         guard canSearch else { return }

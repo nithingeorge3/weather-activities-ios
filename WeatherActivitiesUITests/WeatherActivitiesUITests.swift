@@ -38,4 +38,20 @@ final class WeatherActivitiesUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+    
+    func testSearchButtonEnabledForValidQuery() {
+        let app = XCUIApplication()
+        app.launch()
+
+        let searchField = app.textFields["citySearch.input"]
+        let searchButton = app.buttons["citySearch.searchButton"]
+
+        XCTAssertTrue(searchField.exists)
+        XCTAssertFalse(searchButton.isEnabled)
+
+        searchField.tap()
+        searchField.typeText("London")
+
+        XCTAssertTrue(searchButton.isEnabled)
+    }
 }

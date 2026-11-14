@@ -32,7 +32,6 @@ struct CitySearchView: View {
     private var searchSection: some View {
 
         VStack(spacing: 12) {
-
             TextField(
                 "Search for a city",
                 text: $viewModel.query
@@ -41,6 +40,9 @@ struct CitySearchView: View {
             .textInputAutocapitalization(.words)
             .autocorrectionDisabled()
             .submitLabel(.search)
+            .accessibilityLabel("City")
+            .accessibilityHint("Enter at least two characters to search")
+            .accessibilityIdentifier("citySearchInput")
             .onSubmit {
                 performSearch()
             }
@@ -49,13 +51,13 @@ struct CitySearchView: View {
                 performSearch()
             } label: {
                 Text("Search")
-                    .font(.headline)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(.black)
             .controlSize(.large)
             .disabled(!viewModel.canSearch)
+            .accessibilityIdentifier("citySearchSearchButton")
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -88,7 +90,6 @@ struct CitySearchView: View {
             List(cities) { city in
 
                 VStack(alignment: .leading, spacing: 4) {
-
                     Text(city.title)
                         .font(.headline)
 
@@ -97,8 +98,11 @@ struct CitySearchView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("citySearch.city.\(city.id)")
             }
             .listStyle(.plain)
+            .accessibilityIdentifier("citySearchResultsList")
 
         case .empty:
             ContentUnavailableView(
