@@ -9,6 +9,9 @@ struct CityRowViewData: Identifiable, Hashable, Sendable {
     let id: Int
     let title: String
     let subtitle: String
+    let latitude: Double
+    let longitude: Double
+    let timeZoneID: String?
 }
 
 extension CityDomain {
@@ -25,7 +28,10 @@ extension CityDomain {
         return CityRowViewData(
             id: id,
             title: name,
-            subtitle: subtitle
+            subtitle: subtitle,
+            latitude: latitude,
+            longitude: longitude,
+            timeZoneID: timeZoneID
         )
     }
 }

@@ -31,3 +31,34 @@ struct DependencyContainer {
         )
     }
 }
+
+//MARK: activity recommendations
+
+extension DependencyContainer {
+    func makeActivityRecommendationsViewModel(
+        city: CityRowViewData
+    ) -> ActivityRecommendationsViewModel {
+
+        let httpClient = URLSessionHTTPClient()
+
+        let service = ForecastService(
+            httpClient: httpClient
+        )
+
+        let repository = WeatherRepository(
+            service: service
+        )
+
+        let useCase = GetActivityRecommendationsUseCase(
+            repository: repository
+        )
+
+        return ActivityRecommendationsViewModel(
+            cityName: city.title,
+            latitude: city.latitude,
+            longitude: city.longitude,
+            timeZoneID: city.timeZoneID,
+            useCase: useCase
+        )
+    }
+}

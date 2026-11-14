@@ -89,16 +89,18 @@ struct CitySearchView: View {
         case .results(let cities):
             List(cities) { city in
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(city.title)
-                        .font(.headline)
+                NavigationLink(value: city) {
+                    VStack(alignment: .leading, spacing: 4) {
 
-                    Text(city.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        Text(city.title)
+                            .font(.headline)
+
+                        Text(city.subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
-                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("citySearch.city.\(city.id)")
             }
             .listStyle(.plain)
