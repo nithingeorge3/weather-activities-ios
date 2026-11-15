@@ -7,34 +7,57 @@
 
 import Foundation
 
+// MARK: - Repository Protocol
+
 protocol WeatherRepositoryProtocol: Sendable {
 
     func getForecast(
         latitude: Double,
         longitude: Double,
-        timeZoneID: String?
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
     ) async throws -> [ForecastDay]
 }
+
+// MARK: - Errors
 
 enum WeatherRepositoryError: LocalizedError {
 
     case inconsistentForecastData
 
     var errorDescription: String? {
+
         switch self {
+
         case .inconsistentForecastData:
             return "Weather forecast data is incomplete."
         }
     }
 }
 
+// MARK: - Weather Repository
+
 struct WeatherRepository: WeatherRepositoryProtocol {
 
     private let service: any ForecastServiceProtocol
+    private let cache: (any ForecastCacheProtocol)?
+    private let cacheMaxAge: TimeInterval
+    private let now: @Sendable () -> Date
 
-    init(service: any ForecastServiceProtocol) {
+    init(
+        service: any ForecastServiceProtocol,
+        cache: (any ForecastCacheProtocol)?,
+        cacheMaxAge: TimeInterval = 6 * 60 * 60,
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
+
         self.service = service
+        self.cache = cache
+        self.cacheMaxAge = cacheMaxAge
+        self.now = now
     }
+
+    // MARK: - Default Forecast
 
     func getForecast(
         latitude: Double,
@@ -42,16 +65,130 @@ struct WeatherRepository: WeatherRepositoryProtocol {
         timeZoneID: String?
     ) async throws -> [ForecastDay] {
 
-        let response = try await service.getForecast(
+        try await getForecast(
+            latitude: latitude,
+            longitude: longitude,
+            timeZoneID: timeZoneID,
+            policy: .regular
+        )
+    }
+
+    // MARK: - Forecast With Cache Policy
+
+    func getForecast(
+        latitude: Double,
+        longitude: Double,
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
+    ) async throws -> [ForecastDay] {
+
+        let cacheKey = ForecastCacheKey.make(
             latitude: latitude,
             longitude: longitude,
             timeZoneID: timeZoneID
         )
 
-        return try mapToDomain(response.daily)
+        do {
+
+            // 1. Fetch the latest forecast from the API.
+
+            let response = try await service.getForecast(
+                latitude: latitude,
+                longitude: longitude,
+                timeZoneID: timeZoneID
+            )
+
+            try Task.checkCancellation()
+
+            // 2. Convert API DTOs to domain models.
+
+            let forecast = try mapToDomain(
+                response.daily
+            )
+
+            // 3. Persist successful forecast data.
+
+            if !forecast.isEmpty, let cache {
+
+                do {
+
+                    try await cache.save(
+                        forecast,
+                        for: cacheKey,
+                        fetchedAt: now()
+                    )
+
+                } catch is CancellationError {
+
+                    throw CancellationError()
+
+                } catch {
+
+                    // Cache failure must not hide valid API data.
+                    debugLog(
+                        "Forecast cache save failed: \(error)"
+                    )
+                }
+            }
+
+            try Task.checkCancellation()
+
+            return forecast
+
+        } catch is CancellationError {
+
+            throw CancellationError()
+
+        } catch let error as WeatherRepositoryError {
+
+            // Do not hide inconsistent API data with cached data.
+            throw error
+
+        } catch {
+
+            let originalError = error
+
+            try Task.checkCancellation()
+
+            // 4. Refresh must report failures to the ViewModel.
+
+            guard policy == .regular else {
+                throw originalError
+            }
+
+            // 5. Attempt to retrieve the cached forecast.
+
+            guard let cache,
+                  let cached = try? await cache.load(
+                    for: cacheKey
+                  ) else {
+
+                throw originalError
+            }
+
+            try Task.checkCancellation()
+
+            // 6. Validate cache freshness.
+
+            let cacheAge = now().timeIntervalSince(
+                cached.fetchedAt
+            )
+
+            guard cacheAge >= 0,
+                  cacheAge <= cacheMaxAge,
+                  !cached.days.isEmpty else {
+
+                throw originalError
+            }
+
+            // 7. Return cached domain models.
+
+            return cached.days
+        }
     }
 
-    //DTO to domain
+    // MARK: - DTO to Domain
+
     private func mapToDomain(
         _ daily: DailyForecastDTO
     ) throws -> [ForecastDay] {
@@ -68,7 +205,10 @@ struct WeatherRepository: WeatherRepositoryProtocol {
             daily.weatherCode.count
         ]
 
-        guard fieldCounts.allSatisfy({ $0 == count }) else {
+        guard fieldCounts.allSatisfy({
+            $0 == count
+        }) else {
+
             throw WeatherRepositoryError.inconsistentForecastData
         }
 
@@ -79,7 +219,8 @@ struct WeatherRepository: WeatherRepositoryProtocol {
                 temperatureMax: daily.temperatureMax[index],
                 temperatureMin: daily.temperatureMin[index],
                 precipitationSum: daily.precipitationSum[index],
-                precipitationProbabilityMax: daily.precipitationProbabilityMax[index],
+                precipitationProbabilityMax:
+                    daily.precipitationProbabilityMax[index],
                 snowfallSum: daily.snowfallSum[index],
                 windSpeedMax: daily.windSpeedMax[index],
                 weatherCode: daily.weatherCode[index]

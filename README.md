@@ -18,6 +18,7 @@ Each recommendation includes a score, a recommended day, and a short explanation
 - Swift and SwiftUI
 - MVVM with Clean Architecture principles
 - Swift Concurrency (`async`/`await`) and Observation (`@Observable`)
+- SwiftData for best-effort local forecast caching
 - URLSession and XCTest
 - Point-Free `SnapshotTesting` and `InlineSnapshotTesting` (test target only, via Swift Package Manager)
 
@@ -25,7 +26,7 @@ The app itself has no third-party runtime dependencies; the snapshot libraries a
 
 ## Architecture
 
-The app uses lightweight Presentation, Domain, Data, and Networking layers within one Xcode target.
+The app uses lightweight Presentation, Domain, Data, Networking, and Persistence layers within one Xcode target.
 
 ```mermaid
 flowchart TD
@@ -35,12 +36,18 @@ flowchart TD
     subgraph Domain
         UC["Use Cases"] --> RP["Repository Protocols"]
     end
-    subgraph Data["Data & Networking"]
-        RI["Repository Implementations"] --> S["API Services"]
-        S --> HC["HTTPClient / Open-Meteo"]
+    subgraph Data["Data, Networking & Persistence"]
+        CR["CityRepository"] --> CS["CityService"]
+        WR["WeatherRepository"] --> FS["ForecastService"]
+        CS --> HC["HTTPClient / Open-Meteo"]
+        FS --> HC
+        WR --> CP["ForecastCacheProtocol"]
+        CP --> SD["SwiftDataForecastCacheStore"]
+        SD --> DB["SwiftData local forecast cache"]
     end
     VM --> UC
-    RI -. "implements" .-> RP
+    CR -. "implements" .-> RP
+    WR -. "implements" .-> RP
 ```
 
 ### Architecture Decisions
@@ -49,16 +56,22 @@ flowchart TD
 - **Domain:** Use cases own validation and activity-ranking logic. They depend on repository protocols, not networking implementations.
 - **Data:** Repository implementations map API DTOs to domain models.
 - **Networking:** API services build requests and decode responses through an injectable HTTP client.
+- **Persistence:** `WeatherRepository` uses a network-first strategy and can fall back to fresh cached forecasts when a regular request fails. `SwiftDataForecastCacheStore` handles encoding, decoding, and storing forecast data, SwiftData entities stay inside the persistence layer.
+- **Localization:** User-facing strings are managed through
+  `Localizable.xcstrings`, providing a central location for translations
+  and supporting future internationalisation.
 
-The `DependencyContainer` creates and injects concrete dependencies. ViewModels convert domain models into view-specific presentation data.
+The `DependencyContainer` creates and injects concrete dependencies, including the optional forecast cache. `WeatherPersistence` configures SwiftData with an in-memory fallback and allows network-only operation if cache initialization is unavailable. ViewModels convert domain models into view-specific presentation data.
 
 ### Data Flow
 
-**City search:** `CitySearchView â†’ CitySearchViewModel â†’ SearchCitiesUseCase â†’ CityRepository â†’ CityService`
+**City search:** `CitySearchView → CitySearchViewModel → SearchCitiesUseCase → CityRepository → CityService`
 
-**Recommendations:** `ActivityRecommendationsView â†’ ActivityRecommendationsViewModel â†’ GetActivityRecommendationsUseCase â†’ WeatherRepository â†’ ForecastService`
+**Recommendations:** `ActivityRecommendationsView → ActivityRecommendationsViewModel → GetActivityRecommendationsUseCase → WeatherRepository → ForecastService`
 
-The flow from network response to UI is **DTO â†’ Domain â†’ Presentation model**. These boundaries support focused unit tests.
+**Forecast cache:** `WeatherRepository → ForecastCacheProtocol → SwiftDataForecastCacheStore → CachedForecastEntity (SwiftData)`. Successful forecasts update the cache; a regular request may read cached forecasts up to six hours old if the network fails. Pull-to-refresh requests the network directly and reports failures rather than silently returning cached data.
+
+The flow from network response to UI is **DTO → Domain → Presentation model**. These boundaries support focused unit tests.
 
 ## Build and Run
 
@@ -78,10 +91,12 @@ The XCTest suite covers:
 - Forecast decoding, repository mapping, and inconsistent response data.
 - Activity scoring, ordering, recommended-day selection, and missing data.
 - ViewModel success, empty, and failure states.
+- Repository cache-save, fresh-cache fallback, expiration, and forced-refresh behaviour using a mock cache.
+- SwiftData cache save, load, update, and key-isolation behaviour using an in-memory `ModelContainer`.
 - Inline snapshot assertions for the ordering and presentation text of mock city search results.
 - A SwiftUI city search screen snapshot using a mock use case and a stored reference image.
 
-Tests inject mock HTTP clients, services, repositories, or use cases as appropriate. Unit tests do not rely on live API responses.
+Tests inject mock HTTP clients, services, repositories, caches, or use cases as appropriate. Unit tests do not rely on live API responses. SwiftData cache tests exercise the real cache store against isolated in-memory storage, without writing a database file to disk.
 
 `CitySearchViewModelTests` uses `InlineSnapshotTesting` to compare readable text directly in the test source. `CitySearchSnapshotTests` uses `SnapshotTesting` to compare a rendered SwiftUI screen against an image baseline. Image snapshots should be recorded and verified with a consistent simulator and iOS runtime; reference images should be committed alongside the tests.
 
@@ -127,12 +142,16 @@ The implementation favours clear responsibilities, testable business logic, and 
 - **Dependency injection:** A central `DependencyContainer` is used instead of creating a factory abstraction for every type.
 - **Search:** An explicit Search action avoids frequent API calls; debounced instant search is deferred.
 - **Ranking:** Simple, documented scoring rules are preferred over a complex prediction model.
+- **Persistence:** A six-hour, network-first SwiftData cache provides a limited offline fallback for previously loaded forecasts. Caching is best-effort: the app can use an in-memory cache or run without caching if local storage cannot be initialized. Versioned schemas and explicit migration plans are deferred for this single-entity cache.
 - **Testing and UI:** Unit tests cover domain and state behaviour, with one focused screen snapshot and an inline snapshot. Extensive UI automation, broader snapshot coverage, and custom animations are deferred.
 - **Test development:** I did not follow a strict test-first TDD cycle for this time-boxed implementation. Tests were added to verify the key business rules, mapping, and presentation states.
 - **SwiftUI previews:** Additional `#Preview` scenarios for loading, results, empty, and error states, including light/dark appearance, would speed up visual review. Previews complement automated snapshot and UI tests but do not replace them.
+- **City filtering:** Search results display matching locations
+  with their region and country. Additional filtering by country
+  or region was deferred for this assessment.
 - **Git workflow:** Branching was kept lightweight for the assessment. For a team, I would keep `main` (or `master`) production-releasable, use `develop` for integration where useful, and short-lived `feature/*`, `fix/*`, `docs/*`, `release/*`, and `hotfix/*` branches. Urgent hotfixes would branch from production, be merged into production and back into `develop`, with release tags created on validated production-branch commits.
 
-Pull-to-refresh is implemented for loaded recommendations; a failed refresh preserves the previous results and presents an alert. Persistent offline caching and further visual polish remain optional enhancements rather than core requirements.
+Pull-to-refresh is implemented for loaded recommendations; a failed refresh preserves the previous results and presents an alert. A basic persistent forecast cache is implemented, while proactive offline-first loading, richer cache management, and further visual polish remain optional enhancements rather than core requirements.
 
 ## Production Readiness
 
@@ -145,7 +164,7 @@ For a production version, I would consider:
 - **Quality:** CI builds, static analysis, expanded snapshot/UI test coverage, and measured coverage of important logic (with an aspirational target above 80%).
 - **Observability:** Analytics and crash reporting, with any session-recording SDK evaluated for privacy and consent implications.
 - **Security:** Keychain storage for any future user credentials or tokens, no committed credentials, and no server-side secrets embedded in the app.
-- **Reliability:** Persistent forecast caching, offline fallback, refresh with cache invalidation, and structured diagnostics.
+- **Reliability:** More comprehensive offline-first behaviour, explicit cache invalidation and diagnostics, and schema migrations if the stored data model evolves.
 
 ## Cross-Platform Delivery
 
@@ -153,7 +172,7 @@ An Android implementation could use Jetpack Compose, ViewModels with StateFlow, 
 
 ## AI Usage Disclosure
 
-AI assistance was used for code review, implementation suggestions, unit test cases, and documentation. Implementation decisions, integration, and final verification remain my responsibility.
+AI assistance was used for code review, implementation suggestions, drafting the SwiftData cache entity model (`CachedForecastEntity`) and persistence code, generating unit, in-memory SwiftData and documentation. I reviewed and adapted the suggestions; implementation decisions, integration, and final verification remain my responsibility.
 
 ## Data Attribution
 

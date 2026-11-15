@@ -14,8 +14,17 @@ struct WeatherActivitiesApp: App {
 
     @State private var citySearchViewModel: CitySearchViewModel
 
+    // MARK: - Initialization
+
     init() {
-        let container = DependencyContainer()
+
+        // Initialize caching when available.
+        // The app continues without caching if initialization fails.
+        let forecastCache = WeatherPersistence.makeForecastCache()
+
+        let container = DependencyContainer(
+            forecastCache: forecastCache
+        )
 
         self.container = container
 
@@ -24,14 +33,20 @@ struct WeatherActivitiesApp: App {
         )
     }
 
+    // MARK: - App Scene
+
     var body: some Scene {
+
         WindowGroup {
+
             NavigationStack {
 
                 CitySearchView(
                     viewModel: citySearchViewModel
                 )
-                .navigationDestination(for: CityRowViewData.self) { city in
+                .navigationDestination(
+                    for: CityRowViewData.self
+                ) { city in
 
                     ActivityRecommendationsView(
                         viewModel: container.makeActivityRecommendationsViewModel(

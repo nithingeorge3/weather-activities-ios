@@ -12,7 +12,8 @@ protocol GetActivityRecommendationsUseCaseProtocol: Sendable {
     func execute(
         latitude: Double,
         longitude: Double,
-        timeZoneID: String?
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
     ) async throws -> [ActivityRecommendation]
 }
 
@@ -28,18 +29,20 @@ struct GetActivityRecommendationsUseCase:
     func execute(
         latitude: Double,
         longitude: Double,
-        timeZoneID: String?
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
     ) async throws -> [ActivityRecommendation] {
 
         let forecast = try await repository.getForecast(
             latitude: latitude,
             longitude: longitude,
-            timeZoneID: timeZoneID
+            timeZoneID: timeZoneID,
+            policy: policy
         )
 
         try Task.checkCancellation()
 
-        let days = Array(forecast.prefix(7))
+        let days = Array(forecast.prefix(ForecastConfiguration.maximumDays))
 
         guard !days.isEmpty else {
             return []

@@ -59,7 +59,7 @@ extension ActivityRecommendationsViewModel {
         state = .loading
 
         do {
-            let results = try await fetchRecommendations()
+            let results = try await fetchRecommendations(policy: .regular)
 
             state = results.isEmpty
                 ? .empty
@@ -83,7 +83,7 @@ extension ActivityRecommendationsViewModel {
         showRefreshError = false
 
         do {
-            let results = try await fetchRecommendations()
+            let results = try await fetchRecommendations(policy: .refresh)
 
             state = results.isEmpty
                 ? .empty
@@ -101,13 +101,15 @@ extension ActivityRecommendationsViewModel {
 
     // MARK: - Private
 
-    private func fetchRecommendations() async throws
-        -> [ActivityRecommendationRowViewData] {
+    private func fetchRecommendations(
+        policy: ForecastLoadPolicy
+    ) async throws -> [ActivityRecommendationRowViewData] {
 
         let recommendations = try await useCase.execute(
             latitude: latitude,
             longitude: longitude,
-            timeZoneID: timeZoneID
+            timeZoneID: timeZoneID,
+            policy: policy
         )
 
         try Task.checkCancellation()

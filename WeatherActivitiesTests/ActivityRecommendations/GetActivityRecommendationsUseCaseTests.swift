@@ -193,7 +193,8 @@ private extension GetActivityRecommendationsUseCaseTests {
         return try await useCase.execute(
             latitude: 51.5085,
             longitude: -0.1257,
-            timeZoneID: "Europe/London"
+            timeZoneID: "Europe/London",
+            policy: .regular
         )
     }
 
@@ -228,7 +229,8 @@ private struct MockWeatherRepository: WeatherRepositoryProtocol {
     func getForecast(
         latitude: Double,
         longitude: Double,
-        timeZoneID: String?
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
     ) async throws -> [ForecastDay] {
 
         days

@@ -50,7 +50,8 @@ extension WeatherRepositoryTests {
         )
 
         let repository = WeatherRepository(
-            service: service
+            service: service,
+            cache: nil
         )
 
         let days = try await repository.getForecast(
@@ -100,7 +101,8 @@ extension WeatherRepositoryTests {
             service: MockForecastService(
                 response: dto,
                 shouldFail: false
-            )
+            ),
+            cache: nil
         )
 
         do {
@@ -130,7 +132,8 @@ extension WeatherRepositoryTests {
             service: MockForecastService(
                 response: dto,
                 shouldFail: true
-            )
+            ),
+            cache: nil
         )
 
         do {
@@ -191,4 +194,246 @@ private struct MockForecastService: ForecastServiceProtocol {
 
 private enum MockForecastError: Error {
     case failed
+}
+
+//MARK: - persistence
+extension WeatherRepositoryTests {
+
+    // MARK: - Cache Save
+
+    @MainActor
+    func testSuccessfulForecastIsSavedToCache() async throws {
+
+        let dto = try makeForecastDTO()
+
+        let cache = MockForecastCache()
+
+        let fixedDate = Date(
+            timeIntervalSince1970: 1_800_000_000
+        )
+
+        let repository = WeatherRepository(
+            service: MockForecastService(
+                response: dto,
+                shouldFail: false
+            ),
+            cache: cache,
+            now: { fixedDate }
+        )
+
+        let days = try await repository.getForecast(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London",
+            policy: .regular
+        )
+
+        let key = ForecastCacheKey.make(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London"
+        )
+
+        let cached = try await cache.load(
+            for: key
+        )
+
+        let result = try XCTUnwrap(cached)
+
+        XCTAssertEqual(days.count, 1)
+
+        XCTAssertEqual(result.days.count, 1)
+
+        XCTAssertEqual(
+            result.days.first?.date,
+            "2026-11-15"
+        )
+
+        XCTAssertEqual(
+            result.fetchedAt,
+            fixedDate
+        )
+    }
+
+    // MARK: - Cache Fallback
+
+    @MainActor
+    func testNetworkFailureReturnsFreshCachedForecast() async throws {
+
+        let dto = try makeForecastDTO()
+
+        let cache = MockForecastCache()
+
+        let fixedDate = Date(
+            timeIntervalSince1970: 1_800_000_000
+        )
+
+        let key = ForecastCacheKey.make(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London"
+        )
+
+        let cachedDay = makeCachedForecastDay()
+
+        await cache.seed(
+            [cachedDay],
+            for: key,
+            fetchedAt: fixedDate.addingTimeInterval(-3600)
+        )
+
+        let repository = WeatherRepository(
+            service: MockForecastService(
+                response: dto,
+                shouldFail: true
+            ),
+            cache: cache,
+            now: { fixedDate }
+        )
+
+        let days = try await repository.getForecast(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London",
+            policy: .regular
+        )
+
+        XCTAssertEqual(days.count, 1)
+
+        XCTAssertEqual(
+            days.first?.date,
+            "2026-11-15"
+        )
+    }
+
+    // MARK: - Refresh
+
+    @MainActor
+    func testRefreshDoesNotFallBackToCache() async throws {
+
+        let dto = try makeForecastDTO()
+
+        let cache = MockForecastCache()
+
+        let fixedDate = Date(
+            timeIntervalSince1970: 1_800_000_000
+        )
+
+        let key = ForecastCacheKey.make(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London"
+        )
+
+        await cache.seed(
+            [makeCachedForecastDay()],
+            for: key,
+            fetchedAt: fixedDate
+        )
+
+        let repository = WeatherRepository(
+            service: MockForecastService(
+                response: dto,
+                shouldFail: true
+            ),
+            cache: cache,
+            now: { fixedDate }
+        )
+
+        do {
+
+            _ = try await repository.getForecast(
+                latitude: 51.5,
+                longitude: -0.12,
+                timeZoneID: "Europe/London",
+                policy: .refresh
+            )
+
+            XCTFail("Expected refresh to report the network failure")
+
+        } catch is MockForecastError {
+
+            // Expected.
+
+        } catch {
+
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    // MARK: - Expired Cache
+
+    @MainActor
+    func testExpiredCacheIsNotUsed() async throws {
+
+        let dto = try makeForecastDTO()
+
+        let cache = MockForecastCache()
+
+        let fixedDate = Date(
+            timeIntervalSince1970: 1_800_000_000
+        )
+
+        let key = ForecastCacheKey.make(
+            latitude: 51.5,
+            longitude: -0.12,
+            timeZoneID: "Europe/London"
+        )
+
+        // Seven hours old; exceeds the six-hour cache limit.
+        await cache.seed(
+            [makeCachedForecastDay()],
+            for: key,
+            fetchedAt: fixedDate.addingTimeInterval(-7 * 3600)
+        )
+
+        let repository = WeatherRepository(
+            service: MockForecastService(
+                response: dto,
+                shouldFail: true
+            ),
+            cache: cache,
+            cacheMaxAge: 6 * 3600,
+            now: { fixedDate }
+        )
+
+        do {
+
+            _ = try await repository.getForecast(
+                latitude: 51.5,
+                longitude: -0.12,
+                timeZoneID: "Europe/London",
+                policy: .regular
+            )
+
+            XCTFail("Expected the original network error")
+
+        } catch is MockForecastError {
+
+            // Expected.
+
+        } catch {
+
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+}
+
+// MARK: - Cache Test Fixture
+
+private extension WeatherRepositoryTests {
+
+    func makeCachedForecastDay() -> ForecastDay {
+
+        ForecastDay(
+            date: "2026-11-15",
+            temperatureMax: 12.5,
+            temperatureMin: 6.2,
+            precipitationSum: 3.0,
+            precipitationProbabilityMax: 60,
+            snowfallSum: 0.0,
+            windSpeedMax: 18.0,
+            weatherCode: 61
+        )
+    }
 }

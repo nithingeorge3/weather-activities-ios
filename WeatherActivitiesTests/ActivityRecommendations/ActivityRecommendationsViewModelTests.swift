@@ -160,7 +160,8 @@ private struct MockGetActivityRecommendationsUseCase:
     func execute(
         latitude: Double,
         longitude: Double,
-        timeZoneID: String?
+        timeZoneID: String?,
+        policy: ForecastLoadPolicy
     ) async throws -> [ActivityRecommendation] {
 
         if shouldFail {

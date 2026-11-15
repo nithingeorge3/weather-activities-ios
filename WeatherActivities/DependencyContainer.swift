@@ -6,9 +6,20 @@
 //
 
 import Foundation
+import SwiftData
 
 @MainActor
 struct DependencyContainer {
+
+    private let forecastCache: (any ForecastCacheProtocol)?
+
+    init(
+        forecastCache: (any ForecastCacheProtocol)?
+    ) {
+        self.forecastCache = forecastCache
+    }
+
+    // MARK: - City Search
 
     func makeCitySearchViewModel() -> CitySearchViewModel {
 
@@ -32,9 +43,10 @@ struct DependencyContainer {
     }
 }
 
-//MARK: activity recommendations
+// MARK: - Activity Recommendations
 
 extension DependencyContainer {
+
     func makeActivityRecommendationsViewModel(
         city: CityRowViewData
     ) -> ActivityRecommendationsViewModel {
@@ -46,7 +58,8 @@ extension DependencyContainer {
         )
 
         let repository = WeatherRepository(
-            service: service
+            service: service,
+            cache: forecastCache
         )
 
         let useCase = GetActivityRecommendationsUseCase(
