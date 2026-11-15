@@ -146,6 +146,9 @@ The implementation favours clear responsibilities, testable business logic, and 
 - **Testing and UI:** Unit tests cover domain and state behaviour, with one focused screen snapshot and an inline snapshot. Extensive UI automation, broader snapshot coverage, and custom animations are deferred.
 - **Test development:** I did not follow a strict test-first TDD cycle for this time-boxed implementation. Tests were added to verify the key business rules, mapping, and presentation states.
 - **SwiftUI previews:** Additional `#Preview` scenarios for loading, results, empty, and error states, including light/dark appearance, would speed up visual review. Previews complement automated snapshot and UI tests but do not replace them.
+- **Device testing:** The application was tested using an iPhone
+  Simulator. Testing on an iPad Simulator and physical iOS devices
+  was not performed within the assessment timeframe.
 - **City filtering:** Search results display matching locations
   with their region and country. Additional filtering by country
   or region was deferred for this assessment.
