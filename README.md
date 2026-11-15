@@ -172,7 +172,13 @@ An Android implementation could use Jetpack Compose, ViewModels with StateFlow, 
 
 ## AI Usage Disclosure
 
-AI assistance was used for code review, implementation suggestions, drafting the SwiftData cache entity model (`CachedForecastEntity`) and persistence code, generating unit, in-memory SwiftData and documentation. I reviewed and adapted the suggestions; implementation decisions, integration, and final verification remain my responsibility.
+AI assistance was used for code review, drafting the outdoor
+sightseeing scoring logic, SwiftData persistence model,
+unit test cases, and documentation.
+
+I reviewed and integrated the generated code, validated
+the scoring behaviour through tests, and remain responsible
+for the implementation decisions and final verification.
 
 ## Data Attribution
 

@@ -57,7 +57,6 @@ enum ForecastCacheKey {
         longitude: Double,
         timeZoneID: String?
     ) -> String {
-
         "\(latitude.bitPattern)|\(longitude.bitPattern)|\(timeZoneID ?? "auto")"
     }
 }
@@ -67,11 +66,11 @@ enum ForecastCacheKey {
 @ModelActor
 actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
 
-    // MARK: - Load
-    
-    func load(
+    // MARK: - Private Helpers
+
+    private func fetchEntity(
         for key: String
-    ) async throws -> CachedForecast? {
+    ) throws -> CachedForecastEntity? {
 
         let predicate = #Predicate<CachedForecastEntity> {
             $0.cacheKey == key
@@ -81,13 +80,27 @@ actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
             predicate: predicate
         )
 
-        guard let entity = try modelContext.fetch(
-            descriptor
-        ).first else {
+        return try modelContext.fetch(descriptor).first
+    }
+}
+
+// MARK: - Cache Operations
+
+extension SwiftDataForecastCacheStore {
+
+    // MARK: - Load
+
+    func load(
+        for key: String
+    ) async throws -> CachedForecast? {
+
+        guard let entity = try fetchEntity(
+            for: key
+        ) else {
             return nil
         }
 
-        // Convert persisted data back to domain models.
+        //convert persisted data back to domain models
         let forecast = try JSONDecoder().decode(
             [ForecastDay].self,
             from: entity.payload
@@ -107,29 +120,21 @@ actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
         fetchedAt: Date
     ) async throws {
 
-        //convert domain models to persisted data
+        //convert domain models into persisted data
         let payload = try JSONEncoder().encode(
             forecast
         )
 
-        let predicate = #Predicate<CachedForecastEntity> {
-            $0.cacheKey == key
-        }
+        if let existing = try fetchEntity(
+            for: key
+        ) {
 
-        let descriptor = FetchDescriptor<CachedForecastEntity>(
-            predicate: predicate
-        )
-
-        if let existing = try modelContext.fetch(
-            descriptor
-        ).first {
-
-            //update existing cache
+            //update existing cached forecast
             existing.payload = payload
             existing.fetchedAt = fetchedAt
 
         } else {
-            //create persistence entity only in the data layer
+            //create persistence entity inside the data layer
             let entity = CachedForecastEntity(
                 cacheKey: key,
                 payload: payload,
@@ -141,11 +146,4 @@ actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
 
         try modelContext.save()
     }
-}
-
-// MARK: - Forecast Load Policy
-
-enum ForecastLoadPolicy: Sendable, Equatable {
-    case regular
-    case refresh
 }
