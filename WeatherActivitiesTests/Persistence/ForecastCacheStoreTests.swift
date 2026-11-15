@@ -39,7 +39,6 @@ final class ForecastCacheStoreTests: XCTestCase {
 extension ForecastCacheStoreTests {
 
     // MARK: - Save and Load
-
     @MainActor
     func testSaveAndLoadForecast() async throws {
 

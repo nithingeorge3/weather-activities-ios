@@ -32,7 +32,6 @@ actor MockForecastCache: ForecastCacheProtocol {
     }
 
     // MARK: - Test Helper
-
     func seed(
         _ forecast: [ForecastDay],
         for key: String,

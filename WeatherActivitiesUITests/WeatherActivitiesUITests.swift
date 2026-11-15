@@ -97,5 +97,4 @@ final class WeatherActivitiesUITests: XCTestCase {
 
         XCTAssertTrue(searchButton.isEnabled)
     }
-
 }
