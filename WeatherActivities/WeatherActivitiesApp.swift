@@ -15,7 +15,6 @@ struct WeatherActivitiesApp: App {
     @State private var citySearchViewModel: CitySearchViewModel
 
     // MARK: - Initialization
-
     init() {
 
         // Initialize caching when available.
@@ -34,7 +33,6 @@ struct WeatherActivitiesApp: App {
     }
 
     // MARK: - App Scene
-
     var body: some Scene {
 
         WindowGroup {

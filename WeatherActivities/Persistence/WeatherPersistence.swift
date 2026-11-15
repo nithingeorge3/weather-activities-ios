@@ -10,11 +10,9 @@ import SwiftData
 enum WeatherPersistence {
 
     // MARK: - Cache Factory
-
     static func makeForecastCache() -> (any ForecastCacheProtocol)? {
 
         do {
-
             let modelContainer = try makeModelContainer()
 
             return SwiftDataForecastCacheStore(
@@ -23,7 +21,7 @@ enum WeatherPersistence {
 
         } catch {
 
-            // Caching is optional; the app can use the API.
+            //caching is optional; the app can use the API
             debugLog(
                 "Forecast cache unavailable: \(error)"
             )
@@ -37,7 +35,6 @@ enum WeatherPersistence {
     private static func makeModelContainer() throws -> ModelContainer {
 
         do {
-
             // Persistent storage for cached forecasts.
             return try ModelContainer(
                 for: CachedForecastEntity.self
@@ -45,11 +42,9 @@ enum WeatherPersistence {
 
         } catch {
 
-            debugLog(
-                "Persistent storage unavailable: \(error)"
-            )
+            debugLog("Persistent storage unavailable: \(error)")
 
-            // Temporary cache if disk persistence is unavailable.
+            //temporary cache if disk persistence is unavailable
             let configuration = ModelConfiguration(
                 isStoredInMemoryOnly: true
             )

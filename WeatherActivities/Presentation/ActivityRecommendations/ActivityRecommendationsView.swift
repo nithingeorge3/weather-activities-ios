@@ -33,7 +33,7 @@ struct ActivityRecommendationsView: View {
 
                             Spacer()
 
-                            Text("\(activity.score)/100")
+                            Text(activity.formattedScore)
                                 .font(.headline)
                         }
 

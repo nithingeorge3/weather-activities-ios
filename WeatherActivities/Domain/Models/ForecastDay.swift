@@ -6,7 +6,6 @@
 //
 
 struct ForecastDay: Sendable, Equatable, Codable {
-
     let date: String
     let temperatureMax: Double?
     let temperatureMin: Double?

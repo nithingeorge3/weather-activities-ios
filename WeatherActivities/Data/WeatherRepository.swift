@@ -90,8 +90,7 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
         do {
 
-            // 1. Fetch the latest forecast from the API.
-
+            // fetch the latest forecast from the API
             let response = try await service.getForecast(
                 latitude: latitude,
                 longitude: longitude,
@@ -100,14 +99,12 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
             try Task.checkCancellation()
 
-            // 2. Convert API DTOs to domain models.
-
+            // convert API DTOs to domain models
             let forecast = try mapToDomain(
                 response.daily
             )
 
-            // 3. Persist successful forecast data.
-
+            // local caching
             if !forecast.isEmpty, let cache {
 
                 do {
@@ -124,7 +121,7 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
                 } catch {
 
-                    // Cache failure must not hide valid API data.
+                    // Cache failure must not hide valid API data
                     debugLog(
                         "Forecast cache save failed: \(error)"
                     )
@@ -141,7 +138,7 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
         } catch let error as WeatherRepositoryError {
 
-            // Do not hide inconsistent API data with cached data.
+            //inconsistent API data with cached data.
             throw error
 
         } catch {
@@ -150,14 +147,13 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
             try Task.checkCancellation()
 
-            // 4. Refresh must report failures to the ViewModel.
+            //refresh must report failures to the ViewModel
 
             guard policy == .regular else {
                 throw originalError
             }
 
-            // 5. Attempt to retrieve the cached forecast.
-
+            //attempt to retrieve the cached forecast
             guard let cache,
                   let cached = try? await cache.load(
                     for: cacheKey
@@ -168,8 +164,7 @@ struct WeatherRepository: WeatherRepositoryProtocol {
 
             try Task.checkCancellation()
 
-            // 6. Validate cache freshness.
-
+            //validate cache freshness
             let cacheAge = now().timeIntervalSince(
                 cached.fetchedAt
             )
@@ -181,8 +176,7 @@ struct WeatherRepository: WeatherRepositoryProtocol {
                 throw originalError
             }
 
-            // 7. Return cached domain models.
-
+            //return cached domain models
             return cached.days
         }
     }

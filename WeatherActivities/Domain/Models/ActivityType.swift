@@ -13,7 +13,6 @@ enum ActivityType: String, CaseIterable, Sendable {
 }
 
 struct ActivityRecommendation: Identifiable, Sendable {
-
     let activity: ActivityType
     let score: Int
     let bestDay: String

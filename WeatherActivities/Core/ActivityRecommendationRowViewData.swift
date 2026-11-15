@@ -83,3 +83,10 @@ private extension ActivityType {
         }
     }
 }
+
+extension ActivityRecommendationRowViewData {
+
+    var formattedScore: String {
+        "\(score)/100"
+    }
+}

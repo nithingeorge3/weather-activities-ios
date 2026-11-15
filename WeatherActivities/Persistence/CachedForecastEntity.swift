@@ -31,16 +31,13 @@ final class CachedForecastEntity {
 // MARK: - Cached Domain Data
 
 struct CachedForecast: Sendable {
-
     let days: [ForecastDay]
-
     let fetchedAt: Date
 }
 
 // MARK: - Cache Protocol
 
 protocol ForecastCacheProtocol: Sendable {
-
     func load(
         for key: String
     ) async throws -> CachedForecast?
@@ -55,7 +52,6 @@ protocol ForecastCacheProtocol: Sendable {
 // MARK: - Cache Key
 
 enum ForecastCacheKey {
-
     static func make(
         latitude: Double,
         longitude: Double,
@@ -72,7 +68,7 @@ enum ForecastCacheKey {
 actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
 
     // MARK: - Load
-
+    
     func load(
         for key: String
     ) async throws -> CachedForecast? {
@@ -111,7 +107,7 @@ actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
         fetchedAt: Date
     ) async throws {
 
-        // Convert domain models to persisted data.
+        //convert domain models to persisted data
         let payload = try JSONEncoder().encode(
             forecast
         )
@@ -128,13 +124,12 @@ actor SwiftDataForecastCacheStore: ForecastCacheProtocol {
             descriptor
         ).first {
 
-            // Update existing cache.
+            //update existing cache
             existing.payload = payload
             existing.fetchedAt = fetchedAt
 
         } else {
-
-            // Create persistence entity only in the data layer.
+            //create persistence entity only in the data layer
             let entity = CachedForecastEntity(
                 cacheKey: key,
                 payload: payload,

@@ -8,7 +8,6 @@
 import Foundation
 
 protocol ForecastServiceProtocol: Sendable {
-
     func getForecast(
         latitude: Double,
         longitude: Double,
