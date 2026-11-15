@@ -1,5 +1,5 @@
 //
-//  SwiftDataForecastCacheStoreTests.swift
+//  ForecastCacheStoreTests.swift
 //  WeatherActivitiesTests
 //
 //  Created by Nitin George on 15/11/2026.
@@ -9,7 +9,7 @@ import XCTest
 import SwiftData
 @testable import WeatherActivities
 
-final class SwiftDataForecastCacheStoreTests: XCTestCase {
+final class ForecastCacheStoreTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -36,7 +36,7 @@ final class SwiftDataForecastCacheStoreTests: XCTestCase {
 
 }
 
-extension SwiftDataForecastCacheStoreTests {
+extension ForecastCacheStoreTests {
 
     // MARK: - Save and Load
 
@@ -199,10 +199,10 @@ extension SwiftDataForecastCacheStoreTests {
 
 // MARK: - Helpers
 
-private extension SwiftDataForecastCacheStoreTests {
+private extension ForecastCacheStoreTests {
 
     @MainActor
-    func makeStore() throws -> SwiftDataForecastCacheStore {
+    func makeStore() throws -> ForecastCacheStore {
 
         // Unique in-memory database for this test.
         let configuration = ModelConfiguration(
@@ -215,7 +215,7 @@ private extension SwiftDataForecastCacheStoreTests {
             configurations: configuration
         )
 
-        return SwiftDataForecastCacheStore(
+        return ForecastCacheStore(
             modelContainer: container
         )
     }

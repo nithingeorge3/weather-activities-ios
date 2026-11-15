@@ -15,7 +15,7 @@ enum WeatherPersistence {
         do {
             let modelContainer = try makeModelContainer()
 
-            return SwiftDataForecastCacheStore(
+            return ForecastCacheStore(
                 modelContainer: modelContainer
             )
 
