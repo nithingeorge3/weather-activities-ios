@@ -21,7 +21,8 @@ enum ActivityRecommendationsState {
 final class ActivityRecommendationsViewModel {
 
     private(set) var state: ActivityRecommendationsState = .idle
-
+    var showRefreshError = false
+    
     let cityName: String
 
     private let latitude: Double
@@ -45,25 +46,20 @@ final class ActivityRecommendationsViewModel {
     }
 
     deinit {
-        print("deinit ActivityRecommendationsViewModel")
+        debugLog("deinit ActivityRecommendationsViewModel")
     }
-    
+}
+
+extension ActivityRecommendationsViewModel {
+
+    // MARK: - Initial Load
+
     func load() async {
 
         state = .loading
 
         do {
-            let recommendations = try await useCase.execute(
-                latitude: latitude,
-                longitude: longitude,
-                timeZoneID: timeZoneID
-            )
-
-            try Task.checkCancellation()
-
-            let results = recommendations.map {
-                $0.toPresentation()
-            }
+            let results = try await fetchRecommendations()
 
             state = results.isEmpty
                 ? .empty
@@ -74,7 +70,50 @@ final class ActivityRecommendationsViewModel {
 
         } catch {
             guard !Task.isCancelled else { return }
+
             state = .error(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Refresh
+
+    func refresh() async {
+        guard case .results = state else { return }
+
+        showRefreshError = false
+
+        do {
+            let results = try await fetchRecommendations()
+
+            state = results.isEmpty
+                ? .empty
+                : .results(results)
+
+        } catch is CancellationError {
+            return
+
+        } catch {
+            guard !Task.isCancelled else { return }
+
+            showRefreshError = true
+        }
+    }
+
+    // MARK: - Private
+
+    private func fetchRecommendations() async throws
+        -> [ActivityRecommendationRowViewData] {
+
+        let recommendations = try await useCase.execute(
+            latitude: latitude,
+            longitude: longitude,
+            timeZoneID: timeZoneID
+        )
+
+        try Task.checkCancellation()
+
+        return recommendations.map {
+            $0.toPresentation()
         }
     }
 }

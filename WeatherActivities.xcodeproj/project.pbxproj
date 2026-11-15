@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		288C8B0D30A8EEDD008C5989 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 288C8B0C30A8EEDD008C5989 /* InlineSnapshotTesting */; };
+		288C8B0F30A8EEDD008C5989 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 288C8B0E30A8EEDD008C5989 /* SnapshotTesting */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		286FE74E30A778B400A213FE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -59,6 +64,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				288C8B0D30A8EEDD008C5989 /* InlineSnapshotTesting in Frameworks */,
+				288C8B0F30A8EEDD008C5989 /* SnapshotTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,6 +142,8 @@
 			);
 			name = WeatherActivitiesTests;
 			packageProductDependencies = (
+				288C8B0C30A8EEDD008C5989 /* InlineSnapshotTesting */,
+				288C8B0E30A8EEDD008C5989 /* SnapshotTesting */,
 			);
 			productName = WeatherActivitiesTests;
 			productReference = 286FE74D30A778B400A213FE /* WeatherActivitiesTests.xctest */;
@@ -195,6 +204,9 @@
 			);
 			mainGroup = 286FE73730A778B100A213FE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				288C8B0B30A8EEDD008C5989 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 286FE74130A778B100A213FE /* Products */;
 			projectDirPath = "";
@@ -580,6 +592,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		288C8B0B30A8EEDD008C5989 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.19.7;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		288C8B0C30A8EEDD008C5989 /* InlineSnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 288C8B0B30A8EEDD008C5989 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = InlineSnapshotTesting;
+		};
+		288C8B0E30A8EEDD008C5989 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 288C8B0B30A8EEDD008C5989 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 286FE73830A778B100A213FE /* Project object */;
 }

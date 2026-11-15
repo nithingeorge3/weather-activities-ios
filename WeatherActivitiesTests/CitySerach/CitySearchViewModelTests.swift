@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import InlineSnapshotTesting
 @testable import WeatherActivities
 
 final class CitySearchViewModelTests: XCTestCase {
@@ -40,21 +41,17 @@ extension CitySearchViewModelTests {
     // MARK: - Validation
 
     @MainActor
-    func testCanSearchRequiresAtLeastTwoCharacters() {
+    func testCanSearchRequiresAtLeastTwoCharacters() async {
 
         let viewModel = makeViewModel()
 
-        let initiallyEnabled = viewModel.canSearch
+        XCTAssertFalse(viewModel.canSearch)
 
         viewModel.query = " L "
-        let shortQueryEnabled = viewModel.canSearch
+        XCTAssertFalse(viewModel.canSearch)
 
         viewModel.query = " Lo "
-        let validQueryEnabled = viewModel.canSearch
-
-        XCTAssertFalse(initiallyEnabled)
-        XCTAssertFalse(shortQueryEnabled)
-        XCTAssertTrue(validQueryEnabled)
+        XCTAssertTrue(viewModel.canSearch)
     }
 
     @MainActor
@@ -191,6 +188,55 @@ private struct MockSearchCitiesUseCase: SearchCitiesUseCaseProtocol {
         }
 
         return cities
+    }
+}
+
+//MARK: -  InlineSnapshot
+
+extension CitySearchViewModelTests {
+
+    /// Verifies city result ordering and subtitle formatting.
+    @MainActor
+    func testSearchResultsInlineSnapshot() async {
+
+        let viewModel = makeViewModel(
+            cities: [
+                makeCity(),
+                CityDomain(
+                    id: 6058560,
+                    name: "London",
+                    country: "Canada",
+                    region: "Ontario",
+                    latitude: 42.9849,
+                    longitude: -81.2453,
+                    timeZoneID: "America/Toronto"
+                )
+            ]
+        )
+
+        viewModel.query = "London"
+
+        await viewModel.search()
+
+        guard case .results(let cities) = viewModel.state else {
+            XCTFail("Expected results state")
+            return
+        }
+
+        let summary = cities.map {
+            "\($0.title) - \($0.subtitle)"
+        }
+        .joined(separator: "\n")
+
+        assertInlineSnapshot(
+            of: summary,
+            as: .description
+        ) {
+            """
+            London - England, United Kingdom
+            London - Ontario, Canada
+            """
+        }
     }
 }
 

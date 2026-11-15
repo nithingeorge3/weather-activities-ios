@@ -21,7 +21,7 @@ enum CitySearchState {
 final class CitySearchViewModel {
 
     var query = ""
-
+    
     var canSearch: Bool {
         query
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -37,6 +37,10 @@ final class CitySearchViewModel {
     ) {
         self.searchCitiesUseCase = searchCitiesUseCase
     }
+    
+    // Workaround for Swift/XCTest deallocation crash on iOS 26.2.
+    // See https://github.com/swiftlang/swift/issues/87316
+    nonisolated deinit {}
 }
 
 //MARK: - Services

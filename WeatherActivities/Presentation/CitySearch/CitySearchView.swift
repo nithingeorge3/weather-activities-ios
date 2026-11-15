@@ -42,7 +42,7 @@ struct CitySearchView: View {
             .submitLabel(.search)
             .accessibilityLabel("City")
             .accessibilityHint("Enter at least two characters to search")
-            .accessibilityIdentifier("citySearchInput")
+            .accessibilityIdentifier("citySearch.input")
             .onSubmit {
                 performSearch()
             }
@@ -54,10 +54,9 @@ struct CitySearchView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.black)
             .controlSize(.large)
             .disabled(!viewModel.canSearch)
-            .accessibilityIdentifier("citySearchSearchButton")
+            .accessibilityIdentifier("citySearch.searchButton")
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -104,7 +103,7 @@ struct CitySearchView: View {
                 .accessibilityIdentifier("citySearch.city.\(city.id)")
             }
             .listStyle(.plain)
-            .accessibilityIdentifier("citySearchResultsList")
+            .accessibilityIdentifier("citySearch.Results.List")
 
         case .empty:
             ContentUnavailableView(
@@ -162,6 +161,17 @@ private struct PreviewSearchCitiesUseCase: SearchCitiesUseCaseProtocol {
             )
         )
     }
+}
+
+#Preview("City Search - Dark") {
+    NavigationStack {
+        CitySearchView(
+            viewModel: CitySearchViewModel(
+                searchCitiesUseCase: PreviewSearchCitiesUseCase()
+            )
+        )
+    }
+    .preferredColorScheme(.dark)
 }
 
 #endif

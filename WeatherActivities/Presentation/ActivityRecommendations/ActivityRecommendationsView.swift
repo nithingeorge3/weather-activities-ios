@@ -47,17 +47,38 @@ struct ActivityRecommendationsView: View {
                     }
                     .padding(.vertical, 8)
                     .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier(
+                        "activityRecommendations.row.\(activity.title)"
+                    )
                 }
                 .listStyle(.plain)
+                .accessibilityIdentifier("activityRecommendations.list")
+                .refreshable {
+                    await viewModel.refresh()
+                }
 
             case .empty:
+
                 Text("No Recommendations")
 
             case .error(let message):
-                Text("Unable to Load")
+
+                ContentUnavailableView(
+                    "Unable to Load",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(message)
+                )
             }
         }
         .navigationTitle(viewModel.cityName)
+        .alert(
+            "Unable to Refresh",
+            isPresented: $viewModel.showRefreshError
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Showing previous recommendations. Please try again.")
+        }
         .task {
             await viewModel.load()
         }

@@ -19,8 +19,9 @@ Each recommendation includes a score, a recommended day, and a short explanation
 - MVVM with Clean Architecture principles
 - Swift Concurrency (`async`/`await`) and Observation (`@Observable`)
 - URLSession and XCTest
+- Point-Free `SnapshotTesting` and `InlineSnapshotTesting` (test target only, via Swift Package Manager)
 
-No third-party dependencies are required.
+The app itself has no third-party runtime dependencies; the snapshot libraries are used only in tests.
 
 ## Architecture
 
@@ -53,11 +54,11 @@ The `DependencyContainer` creates and injects concrete dependencies. ViewModels 
 
 ### Data Flow
 
-**City search:** `CitySearchView → CitySearchViewModel → SearchCitiesUseCase → CityRepository → CityService`
+**City search:** `CitySearchView â†’ CitySearchViewModel â†’ SearchCitiesUseCase â†’ CityRepository â†’ CityService`
 
-**Recommendations:** `ActivityRecommendationsView → ActivityRecommendationsViewModel → GetActivityRecommendationsUseCase → WeatherRepository → ForecastService`
+**Recommendations:** `ActivityRecommendationsView â†’ ActivityRecommendationsViewModel â†’ GetActivityRecommendationsUseCase â†’ WeatherRepository â†’ ForecastService`
 
-The flow from network response to UI is **DTO → Domain → Presentation model**. These boundaries support focused unit tests.
+The flow from network response to UI is **DTO â†’ Domain â†’ Presentation model**. These boundaries support focused unit tests.
 
 ## Build and Run
 
@@ -77,8 +78,12 @@ The XCTest suite covers:
 - Forecast decoding, repository mapping, and inconsistent response data.
 - Activity scoring, ordering, recommended-day selection, and missing data.
 - ViewModel success, empty, and failure states.
+- Inline snapshot assertions for the ordering and presentation text of mock city search results.
+- A SwiftUI city search screen snapshot using a mock use case and a stored reference image.
 
 Tests inject mock HTTP clients, services, repositories, or use cases as appropriate. Unit tests do not rely on live API responses.
+
+`CitySearchViewModelTests` uses `InlineSnapshotTesting` to compare readable text directly in the test source. `CitySearchSnapshotTests` uses `SnapshotTesting` to compare a rendered SwiftUI screen against an image baseline. Image snapshots should be recorded and verified with a consistent simulator and iOS runtime; reference images should be committed alongside the tests.
 
 **Run tests:** Open the project in Xcode and press **Cmd + U**.
 
@@ -122,9 +127,12 @@ The implementation favours clear responsibilities, testable business logic, and 
 - **Dependency injection:** A central `DependencyContainer` is used instead of creating a factory abstraction for every type.
 - **Search:** An explicit Search action avoids frequent API calls; debounced instant search is deferred.
 - **Ranking:** Simple, documented scoring rules are preferred over a complex prediction model.
-- **Testing and UI:** Unit tests focus on domain and state behaviour. Extensive UI automation, snapshot tests, and custom animations are not included.
+- **Testing and UI:** Unit tests cover domain and state behaviour, with one focused screen snapshot and an inline snapshot. Extensive UI automation, broader snapshot coverage, and custom animations are deferred.
+- **Test development:** I did not follow a strict test-first TDD cycle for this time-boxed implementation. Tests were added to verify the key business rules, mapping, and presentation states.
+- **SwiftUI previews:** Additional `#Preview` scenarios for loading, results, empty, and error states, including light/dark appearance, would speed up visual review. Previews complement automated snapshot and UI tests but do not replace them.
+- **Git workflow:** Branching was kept lightweight for the assessment. For a team, I would keep `main` (or `master`) production-releasable, use `develop` for integration where useful, and short-lived `feature/*`, `fix/*`, `docs/*`, `release/*`, and `hotfix/*` branches. Urgent hotfixes would branch from production, be merged into production and back into `develop`, with release tags created on validated production-branch commits.
 
-Persistent offline caching, pull-to-refresh, and further visual polish are optional enhancements rather than core requirements.
+Pull-to-refresh is implemented for loaded recommendations; a failed refresh preserves the previous results and presents an alert. Persistent offline caching and further visual polish remain optional enhancements rather than core requirements.
 
 ## Production Readiness
 
@@ -134,7 +142,7 @@ For a production version, I would consider:
 - **Architecture:** Feature-specific factories only if the dependency graph grows significantly.
 - **Accessibility and devices:** Broader VoiceOver, Dynamic Type, iPad, orientation, and screen-size testing.
 - **Search UX:** Debouncing, cancellation of superseded requests, and improved retry behaviour.
-- **Quality:** CI builds, static analysis, snapshot/UI tests, and measured coverage of important logic (with an aspirational target above 80%).
+- **Quality:** CI builds, static analysis, expanded snapshot/UI test coverage, and measured coverage of important logic (with an aspirational target above 80%).
 - **Observability:** Analytics and crash reporting, with any session-recording SDK evaluated for privacy and consent implications.
 - **Security:** Keychain storage for any future user credentials or tokens, no committed credentials, and no server-side secrets embedded in the app.
 - **Reliability:** Persistent forecast caching, offline fallback, refresh with cache invalidation, and structured diagnostics.
@@ -150,4 +158,3 @@ AI assistance was used for code review, implementation suggestions, unit test ca
 ## Data Attribution
 
 Weather and geocoding data are provided by [Open-Meteo](https://open-meteo.com/). See its [licensing and attribution requirements](https://open-meteo.com/en/license).
-
